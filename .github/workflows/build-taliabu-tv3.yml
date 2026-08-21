@@ -41,21 +41,15 @@ jobs:
         run: |
           set -euxo pipefail
           rm -rf .media3
-          git clone --depth 1 --branch release-1.11.0-fongmi \
-            https://github.com/wobuhui666/media.git .media3
+          git clone --depth 1 --branch release-1.11.0-fongmi https://github.com/wobuhui666/media.git .media3
 
       - name: Fetch build compatibility assets
         shell: bash
         run: |
           set -euxo pipefail
           rm -rf /tmp/fongmi-compat
-          git clone --depth 1 --branch sync/fongmi-20260628 --filter=blob:none --sparse \
-            https://github.com/wobuhui666/TV.git /tmp/fongmi-compat
-          git -C /tmp/fongmi-compat sparse-checkout set \
-            .github/media3-composite-settings.gradle.kts \
-            .github/media3-stubs \
-            app/libs/mpv-android-lib-v0.0.3.aar \
-            third_party/mpv/mpv-android-ffmpeg9-native.zip
+          git clone --depth 1 --branch sync/fongmi-20260628 --filter=blob:none --sparse https://github.com/wobuhui666/TV.git /tmp/fongmi-compat
+          git -C /tmp/fongmi-compat sparse-checkout set .github app/libs third_party/mpv
 
           mkdir -p .github app/libs third_party/mpv
           cp /tmp/fongmi-compat/.github/media3-composite-settings.gradle.kts .media3/settings.gradle.kts
@@ -69,20 +63,15 @@ jobs:
           test -f .media3/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/source/preload/DiskPreloadManager.java
           test -f app/libs/mpv-android-lib-v0.0.3.aar
           test -f third_party/mpv/mpv-android-ffmpeg9-native.zip
-
           echo "Media3 source fork and MPV assets ready"
-          du -sh .media3 app/libs/mpv-android-lib-v0.0.3.aar third_party/mpv/mpv-android-ffmpeg9-native.zip
 
       - name: Fetch supplemental FongMi Maven dependencies
         shell: bash
         run: |
           set -euxo pipefail
           rm -rf /tmp/webhtv-deps third_party/maven
-          git clone --depth 1 --filter=blob:none --sparse \
-            https://github.com/fish2018/webhtv.git /tmp/webhtv-deps
-          git -C /tmp/webhtv-deps sparse-checkout set \
-            third_party/maven/androidx/media3/media3-effect \
-            third_party/maven/io/github/anilbeesetti/nextlib-media3ext
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/fish2018/webhtv.git /tmp/webhtv-deps
+          git -C /tmp/webhtv-deps sparse-checkout set third_party/maven/androidx/media3/media3-effect third_party/maven/io/github/anilbeesetti/nextlib-media3ext
           mkdir -p third_party
           cp -a /tmp/webhtv-deps/third_party/maven third_party/
           test -d third_party/maven/androidx/media3/media3-effect
@@ -91,16 +80,7 @@ jobs:
       - name: Prepare local signing properties
         shell: bash
         run: |
-          keytool -genkeypair \
-            -keystore "$GITHUB_WORKSPACE/taliabu-tv3-test.jks" \
-            -storepass android \
-            -keypass android \
-            -alias taliabu-tv3 \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Taliabu TV3, OU=Taliabu, O=Taliabu, L=Taliabu, C=ID"
-
+          keytool -genkeypair -keystore "$GITHUB_WORKSPACE/taliabu-tv3-test.jks" -storepass android -keypass android -alias taliabu-tv3 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Taliabu TV3, OU=Taliabu, O=Taliabu, L=Taliabu, C=ID"
           cat > local.properties <<EOF
           storeFile=$GITHUB_WORKSPACE/taliabu-tv3-test.jks
           keyAlias=taliabu-tv3
