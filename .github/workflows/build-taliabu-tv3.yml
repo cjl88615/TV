@@ -16,7 +16,7 @@ jobs:
   build:
     name: Build test APKs
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout source
@@ -36,25 +36,57 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Fetch FongMi-compatible Media3 and MPV dependencies
+      - name: Fetch exact FongMi Media3 source fork
         shell: bash
         run: |
           set -euxo pipefail
-          rm -rf /tmp/webhtv-deps third_party
+          rm -rf .media3
+          git clone --depth 1 --branch release-1.11.0-fongmi \
+            https://github.com/wobuhui666/media.git .media3
+
+      - name: Fetch build compatibility assets
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/fongmi-compat
+          git clone --depth 1 --branch sync/fongmi-20260628 --filter=blob:none --sparse \
+            https://github.com/wobuhui666/TV.git /tmp/fongmi-compat
+          git -C /tmp/fongmi-compat sparse-checkout set \
+            .github/media3-composite-settings.gradle.kts \
+            .github/media3-stubs \
+            app/libs/mpv-android-lib-v0.0.3.aar \
+            third_party/mpv/mpv-android-ffmpeg9-native.zip
+
+          mkdir -p .github app/libs third_party/mpv
+          cp /tmp/fongmi-compat/.github/media3-composite-settings.gradle.kts .media3/settings.gradle.kts
+          cp -a /tmp/fongmi-compat/.github/media3-stubs .github/
+          cp /tmp/fongmi-compat/app/libs/mpv-android-lib-v0.0.3.aar app/libs/
+          cp /tmp/fongmi-compat/third_party/mpv/mpv-android-ffmpeg9-native.zip third_party/mpv/
+
+          test -f .media3/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/trackselection/DecodeTrackSelector.java
+          test -f .media3/libraries/common/src/main/java/androidx/media3/common/DolbyVisionOutputPolicy.java
+          test -f .media3/libraries/ui/src/main/java/androidx/media3/ui/PlayerSeekView.java
+          test -f .media3/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/source/preload/DiskPreloadManager.java
+          test -f app/libs/mpv-android-lib-v0.0.3.aar
+          test -f third_party/mpv/mpv-android-ffmpeg9-native.zip
+
+          echo "Media3 source fork and MPV assets ready"
+          du -sh .media3 app/libs/mpv-android-lib-v0.0.3.aar third_party/mpv/mpv-android-ffmpeg9-native.zip
+
+      - name: Fetch supplemental FongMi Maven dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/webhtv-deps third_party/maven
           git clone --depth 1 --filter=blob:none --sparse \
             https://github.com/fish2018/webhtv.git /tmp/webhtv-deps
           git -C /tmp/webhtv-deps sparse-checkout set \
-            third_party/maven/androidx/media3 \
+            third_party/maven/androidx/media3/media3-effect \
             third_party/maven/io/github/anilbeesetti/nextlib-media3ext
           mkdir -p third_party
           cp -a /tmp/webhtv-deps/third_party/maven third_party/
-
-          test -d third_party/maven/androidx/media3
+          test -d third_party/maven/androidx/media3/media3-effect
           test -f third_party/maven/io/github/anilbeesetti/nextlib-media3ext/1.10.0-0.12.1-fongmi-softload-av3a-r1/nextlib-media3ext-1.10.0-0.12.1-fongmi-softload-av3a-r1.aar
-          echo "Bundled custom player Maven repository:"
-          du -sh third_party/maven
-          find third_party/maven/androidx/media3 -maxdepth 3 -type f \
-            \( -name '*.aar' -o -name '*.pom' \) | sort | head -80
 
       - name: Prepare local signing properties
         shell: bash
@@ -77,9 +109,11 @@ jobs:
 
       - name: Build all debug APK variants
         shell: bash
+        env:
+          MEDIA3_SOURCE_DIR: ${{ github.workspace }}/.media3
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace --no-daemon
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon --max-workers=2
 
       - name: Collect APKs
         shell: bash
