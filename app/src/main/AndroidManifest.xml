@@ -53,7 +53,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.App"
         android:usesCleartextTraffic="true"
-        tools:replace="android:allowBackup">
+        tools:replace="android:allowBackup,android:label">
 
         <provider
             android:name="androidx.core.content.FileProvider"
