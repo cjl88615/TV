@@ -16,6 +16,7 @@ jobs:
   build:
     name: Build test APKs
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout source
@@ -35,21 +36,25 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Add open-source Media3 compatibility sources
+      - name: Fetch FongMi-compatible Media3 and MPV dependencies
         shell: bash
         run: |
           set -euxo pipefail
-          COMPAT_SHA=32e4ef73472cc4ffd6777a9410a3e8730b259ea1
-          rm -rf /tmp/mxboxs-compat
-          git init /tmp/mxboxs-compat
-          git -C /tmp/mxboxs-compat remote add origin https://github.com/ssmhdssmhd/MXboxS.git
-          git -C /tmp/mxboxs-compat fetch --depth 1 origin "$COMPAT_SHA"
-          git -C /tmp/mxboxs-compat checkout --detach FETCH_HEAD
-          test -d /tmp/mxboxs-compat/app/src/main/java/androidx/media3
-          mkdir -p app/src/main/java/androidx
-          cp -a /tmp/mxboxs-compat/app/src/main/java/androidx/media3 app/src/main/java/androidx/
-          echo "Compatibility source files:"
-          find app/src/main/java/androidx/media3 -type f | sort
+          rm -rf /tmp/webhtv-deps third_party
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/fish2018/webhtv.git /tmp/webhtv-deps
+          git -C /tmp/webhtv-deps sparse-checkout set \
+            third_party/maven/androidx/media3 \
+            third_party/maven/io/github/anilbeesetti/nextlib-media3ext
+          mkdir -p third_party
+          cp -a /tmp/webhtv-deps/third_party/maven third_party/
+
+          test -d third_party/maven/androidx/media3
+          test -f third_party/maven/io/github/anilbeesetti/nextlib-media3ext/1.10.0-0.12.1-fongmi-softload-av3a-r1/nextlib-media3ext-1.10.0-0.12.1-fongmi-softload-av3a-r1.aar
+          echo "Bundled custom player Maven repository:"
+          du -sh third_party/maven
+          find third_party/maven/androidx/media3 -maxdepth 3 -type f \
+            \( -name '*.aar' -o -name '*.pom' \) | sort | head -80
 
       - name: Prepare local signing properties
         shell: bash
