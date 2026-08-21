@@ -106,7 +106,9 @@ androidComponents {
 }
 
 dependencies {
-    implementation fileTree(dir: "libs", include: ["*.aar"])
+    // mpv-android-lib is repackaged by :mpv, so exclude the raw AAR here to avoid duplicate classes/native libs.
+    implementation fileTree(dir: "libs", include: ["*.aar"], exclude: ["mpv-android-lib-*.aar"])
+    implementation project(':mpv')
     implementation project(':catvod')
     implementation project(':chaquo')
     implementation project(':quickjs')
