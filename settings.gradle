@@ -13,6 +13,8 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // GitHub Actions 会在编译前把兼容的 FongMi Media3/MPV Maven 依赖复制到这里。
+        maven { url = uri("$rootDir/third_party/maven") }
         mavenCentral()
         google()
         flatDir { dirs "$rootDir/app/libs" }
