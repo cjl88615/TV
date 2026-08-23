@@ -52,27 +52,23 @@ jobs:
           rm -rf .media3
           git clone --depth 1 --branch release-1.11.0-fongmi https://github.com/wobuhui666/media.git .media3
 
-      - name: Fetch build compatibility assets
+      - name: Fetch Media3 compatibility settings
         shell: bash
         run: |
           set -euxo pipefail
           rm -rf /tmp/fongmi-compat
           git clone --depth 1 --branch sync/fongmi-20260628 --filter=blob:none --sparse https://github.com/wobuhui666/TV.git /tmp/fongmi-compat
-          git -C /tmp/fongmi-compat sparse-checkout set .github app/libs third_party/mpv
+          git -C /tmp/fongmi-compat sparse-checkout set .github
 
-          mkdir -p .github app/libs third_party/mpv
+          mkdir -p .github
           cp /tmp/fongmi-compat/.github/media3-composite-settings.gradle.kts .media3/settings.gradle.kts
           cp -a /tmp/fongmi-compat/.github/media3-stubs .github/
-          cp /tmp/fongmi-compat/app/libs/mpv-android-lib-v0.0.3.aar app/libs/
-          cp /tmp/fongmi-compat/third_party/mpv/mpv-android-ffmpeg9-native.zip third_party/mpv/
 
           test -f .media3/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/trackselection/DecodeTrackSelector.java
           test -f .media3/libraries/common/src/main/java/androidx/media3/common/DolbyVisionOutputPolicy.java
           test -f .media3/libraries/ui/src/main/java/androidx/media3/ui/PlayerSeekView.java
           test -f .media3/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/source/preload/DiskPreloadManager.java
-          test -f app/libs/mpv-android-lib-v0.0.3.aar
-          test -f third_party/mpv/mpv-android-ffmpeg9-native.zip
-          echo "Media3 source fork and MPV assets ready"
+          echo "Media3 source fork ready"
 
       - name: Fetch supplemental FongMi Maven dependencies
         shell: bash
