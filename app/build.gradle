@@ -13,7 +13,7 @@ android {
     compileSdk libs.versions.compileSdk.get().toInteger()
 
     defaultConfig {
-        applicationId "com.fongmi.android.tv"
+        applicationId "com.taliabu.tv3"
         minSdk libs.versions.minSdk.get().toInteger()
         targetSdk libs.versions.targetSdk.get().toInteger()
         versionCode 560
@@ -100,13 +100,18 @@ androidComponents {
 }
 
 dependencies {
-    implementation fileTree(dir: "libs", include: ["*.aar"])
+    // Public build uses ExoPlayer as the active engine. Keep the compatibility MPV AAR out of the app
+    // so its bundled FFmpeg libraries do not collide with nextlib-media3ext's native codecs.
+    implementation fileTree(dir: "libs", include: ["*.aar"], exclude: ["mpv-android-lib-*.aar"])
     implementation project(':catvod')
     implementation project(':chaquo')
     implementation project(':quickjs')
     implementation libs.appcompat
     implementation libs.lifecycle.service
     implementation libs.media
+    implementation libs.bundles.media3
+    implementation libs.exoplayer.hdr.utils
+    implementation libs.nextlib.media3ext
     implementation libs.palette
     implementation libs.recyclerview
     implementation libs.room.runtime
@@ -119,7 +124,6 @@ dependencies {
     implementation libs.customactivityoncrash
     implementation libs.eventbus
     implementation libs.flexbox
-    implementation libs.rtmp.client
     implementation libs.lottie
     implementation libs.material
     implementation libs.materialdesigncolors

@@ -1,0 +1,122 @@
+name: Build Taliabu TV3 APK
+
+on:
+  push:
+    branches:
+      - taliabu-tv3-custom
+  pull_request:
+    branches:
+      - fongmi
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build test APKs
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Align with known-good FongMi build versions
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sed -i 's/agp = "9.3.1"/agp = "9.0.1"/' gradle/libs.versions.toml
+          sed -i 's/media3 = "1.11.0-alpha01-fongmi"/media3 = "1.11.0"/' gradle/libs.versions.toml
+          grep -E '^(agp|media3) = ' gradle/libs.versions.toml
+          grep '^distributionUrl=' gradle/wrapper/gradle-wrapper.properties
+
+      - name: Fetch exact FongMi Media3 source fork
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf .media3
+          git clone --depth 1 --branch release-1.11.0-fongmi https://github.com/wobuhui666/media.git .media3
+
+      - name: Fetch Media3 compatibility settings
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/fongmi-compat
+          git clone --depth 1 --branch sync/fongmi-20260628 --filter=blob:none --sparse https://github.com/wobuhui666/TV.git /tmp/fongmi-compat
+          git -C /tmp/fongmi-compat sparse-checkout set .github
+
+          mkdir -p .github
+          cp /tmp/fongmi-compat/.github/media3-composite-settings.gradle.kts .media3/settings.gradle.kts
+          cp -a /tmp/fongmi-compat/.github/media3-stubs .github/
+
+          test -f .media3/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/trackselection/DecodeTrackSelector.java
+          test -f .media3/libraries/common/src/main/java/androidx/media3/common/DolbyVisionOutputPolicy.java
+          test -f .media3/libraries/ui/src/main/java/androidx/media3/ui/PlayerSeekView.java
+          test -f .media3/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/source/preload/DiskPreloadManager.java
+          echo "Media3 source fork ready"
+
+      - name: Fetch supplemental FongMi Maven dependencies
+        shell: bash
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/webhtv-deps third_party/maven
+          git clone --depth 1 --filter=blob:none --sparse https://github.com/fish2018/webhtv.git /tmp/webhtv-deps
+          git -C /tmp/webhtv-deps sparse-checkout set third_party/maven/androidx/media3/media3-effect third_party/maven/io/github/anilbeesetti/nextlib-media3ext
+          mkdir -p third_party
+          cp -a /tmp/webhtv-deps/third_party/maven third_party/
+          test -d third_party/maven/androidx/media3/media3-effect
+          test -f third_party/maven/io/github/anilbeesetti/nextlib-media3ext/1.10.0-0.12.1-fongmi-softload-av3a-r1/nextlib-media3ext-1.10.0-0.12.1-fongmi-softload-av3a-r1.aar
+
+      - name: Prepare local signing properties
+        shell: bash
+        run: |
+          keytool -genkeypair -keystore "$GITHUB_WORKSPACE/taliabu-tv3-test.jks" -storepass android -keypass android -alias taliabu-tv3 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Taliabu TV3, OU=Taliabu, O=Taliabu, L=Taliabu, C=ID"
+          cat > local.properties <<EOF
+          storeFile=$GITHUB_WORKSPACE/taliabu-tv3-test.jks
+          keyAlias=taliabu-tv3
+          storePassword=android
+          EOF
+
+      - name: Build all debug APK variants
+        shell: bash
+        env:
+          MEDIA3_SOURCE_DIR: ${{ github.workspace }}/.media3
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon --max-workers=2
+
+      - name: Collect APKs
+        shell: bash
+        run: |
+          mkdir -p dist
+          find app/build/outputs/apk -type f -name '*.apk' -print -exec cp '{}' dist/ ';'
+          echo "Built APK files:"
+          ls -lh dist
+          count=$(find dist -maxdepth 1 -type f -name '*.apk' | wc -l)
+          if [ "$count" -lt 4 ]; then
+            echo "Expected at least 4 APK variants, found $count"
+            exit 1
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TaliabuTV3-APK
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 14
