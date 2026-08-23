@@ -100,9 +100,9 @@ androidComponents {
 }
 
 dependencies {
-    // mpv-android-lib is repackaged by :mpv, so exclude the raw AAR here to avoid duplicate classes/native libs.
+    // Public build uses ExoPlayer as the active engine. Keep the compatibility MPV AAR out of the app
+    // so its bundled FFmpeg libraries do not collide with nextlib-media3ext's native codecs.
     implementation fileTree(dir: "libs", include: ["*.aar"], exclude: ["mpv-android-lib-*.aar"])
-    implementation project(':mpv')
     implementation project(':catvod')
     implementation project(':chaquo')
     implementation project(':quickjs')
