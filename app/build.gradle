@@ -1,6 +1,3 @@
-import com.android.build.api.artifact.SingleArtifact
-import com.fongmi.gradle.AbiApkPackaging
-
 plugins {
     alias libs.plugins.android.application
 }
@@ -28,14 +25,22 @@ android {
         }
     }
 
-    flavorDimensions = ["device"]
+    flavorDimensions = ["mode", "abi"]
 
     productFlavors {
         leanback {
-            dimension "device"
+            dimension "mode"
         }
         mobile {
-            dimension "device"
+            dimension "mode"
+        }
+        arm64_v8a {
+            dimension "abi"
+            ndk { abiFilters "arm64-v8a" }
+        }
+        armeabi_v7a {
+            dimension "abi"
+            ndk { abiFilters "armeabi-v7a" }
         }
     }
 
@@ -83,16 +88,30 @@ android {
     }
 }
 
-AbiApkPackaging.configure(project, SingleArtifact.APK.INSTANCE)
+androidComponents {
+    onVariants(selector().withBuildType('release')) { variant ->
+        def flavors = variant.productFlavors.collectEntries { [(it.first): it.second] }
+        def mode = flavors['mode'] ?: 'mode'
+        def abi = flavors['abi'] ?: 'abi'
+        variant.outputs.each { output ->
+            output.outputFileName.set("${mode}-${abi}.apk")
+        }
+    }
+}
 
 dependencies {
-    implementation fileTree(dir: "libs", include: ["*.aar"])
+    // Public build uses ExoPlayer as the active engine. Keep the compatibility MPV AAR out of the app
+    // so its bundled FFmpeg libraries do not collide with nextlib-media3ext's native codecs.
+    implementation fileTree(dir: "libs", include: ["*.aar"], exclude: ["mpv-android-lib-*.aar"])
     implementation project(':catvod')
     implementation project(':chaquo')
     implementation project(':quickjs')
     implementation libs.appcompat
     implementation libs.lifecycle.service
     implementation libs.media
+    implementation libs.bundles.media3
+    implementation libs.exoplayer.hdr.utils
+    implementation libs.nextlib.media3ext
     implementation libs.palette
     implementation libs.recyclerview
     implementation libs.room.runtime
@@ -105,7 +124,6 @@ dependencies {
     implementation libs.customactivityoncrash
     implementation libs.eventbus
     implementation libs.flexbox
-    implementation libs.rtmp.client
     implementation libs.lottie
     implementation libs.material
     implementation libs.materialdesigncolors
