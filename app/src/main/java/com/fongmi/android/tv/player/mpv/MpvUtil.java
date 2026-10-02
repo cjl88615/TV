@@ -1,5 +1,7 @@
 package com.fongmi.android.tv.player.mpv;
 
+import java.util.List;
+
 /**
  * Public-build MPV capability probe.
  *
@@ -14,5 +16,13 @@ public final class MpvUtil {
 
     public static boolean isAvailable() {
         return false;
+    }
+
+    public static boolean isVulkanSupported() {
+        return false;
+    }
+
+    static List<String> getManagedOptionNames() {
+        return List.of();
     }
 }
