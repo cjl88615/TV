@@ -18,10 +18,8 @@ import com.fongmi.android.tv.server.Nano;
 import com.fongmi.android.tv.server.Server;
 import com.fongmi.android.tv.server.impl.Process;
 import com.fongmi.android.tv.service.PlaybackService;
-import com.fongmi.android.tv.utils.FileUtil;
 import com.fongmi.android.tv.utils.Notify;
 import com.github.catvod.net.OkHttp;
-import com.github.catvod.utils.Path;
 
 import java.util.List;
 import java.util.Map;
@@ -62,9 +60,8 @@ public class Action implements Process {
 
     private void onFile(Map<String, String> params) {
         String path = params.get("path");
-        if (TextUtils.isEmpty(path)) return;
-        if (path.endsWith(".apk")) FileUtil.openFile(Path.local(path));
-        else if (path.endsWith(".srt") || path.endsWith(".ssa") || path.endsWith(".ass")) RefreshEvent.subtitle(path);
+        if (TextUtils.isEmpty(path) || path.endsWith(".apk")) return;
+        if (path.endsWith(".srt") || path.endsWith(".ssa") || path.endsWith(".ass")) RefreshEvent.subtitle(path);
         else ServerEvent.setting(path);
     }
 
