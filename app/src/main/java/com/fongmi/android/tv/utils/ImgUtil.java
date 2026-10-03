@@ -51,11 +51,7 @@ public class ImgUtil {
     private static final Cache<String, Image> CACHE = CacheBuilder.newBuilder().maximumWeight(MAX_CACHE_SIZE).weigher((String key, Image value) -> value.data().length).build();
 
     public static void logo(ImageView view) {
-        try {
-            Glide.with(view).load(UrlUtil.convert(VodConfig.get().getConfig().getLogo())).circleCrop().override(Target.SIZE_ORIGINAL, Target.SIZE_ORIGINAL).error(R.drawable.taliabu_icon).into(view);
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
+        view.setImageResource(R.drawable.taliabu_icon);
     }
 
     public static void load(String url, CustomTarget<Bitmap> target) {
