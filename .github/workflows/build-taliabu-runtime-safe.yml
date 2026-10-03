@@ -85,8 +85,10 @@ jobs:
           MEDIA3_SOURCE_DIR: ${{ github.workspace }}/.media3
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleLeanbackRelease --stacktrace --no-daemon --max-workers=1
-          ./gradlew :app:assembleMobileRelease --stacktrace --no-daemon --max-workers=1
+          ./gradlew :app:assembleLeanbackArm64_v8aRelease --stacktrace --no-daemon --max-workers=1
+          ./gradlew :app:assembleLeanbackArmeabi_v7aRelease --stacktrace --no-daemon --max-workers=1
+          ./gradlew :app:assembleMobileArm64_v8aRelease --stacktrace --no-daemon --max-workers=1
+          ./gradlew :app:assembleMobileArmeabi_v7aRelease --stacktrace --no-daemon --max-workers=1
 
       - name: Collect APKs
         shell: bash
